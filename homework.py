@@ -1,4 +1,4 @@
-from typing import ClassVar
+from inspect import signature
 
 
 class InfoMessage:
@@ -29,15 +29,9 @@ class InfoMessage:
 class Training:
     """Базовый класс тренировки."""
 
-    LEN_STEP: ClassVar[float] = 0.65
-    M_IN_KM: ClassVar[int] = 1000
-    CF_CAL_RUN_F: ClassVar[int] = 18
-    CF_CAL_RUN_S: ClassVar[int] = 20
-    CF_MIN: ClassVar[int] = 60
-    CF_CAL_SW_F: ClassVar[int] = 0.035
-    CF_CAL_SW_S: ClassVar[int] = 0.029
-    CF_CAL_SWM_F: ClassVar[int] = 1.1
-    CF_CAL_SWM_S: ClassVar[int] = 2
+    LEN_STEP: float = 0.65
+    M_IN_KM: int = 1000
+    CF_MIN: int = 60
 
     def __init__(self,
                  action: int,
@@ -77,16 +71,23 @@ class Training:
 class Running(Training):
     """Тренировка: бег."""
 
+    CF_CAL_RUN_F: int = 18
+    CF_CAL_RUN_S: int = 20
+
     def get_spent_calories(self):
         """Количество затраченных калорий"""
 
         return (self.CF_CAL_RUN_F * self.get_mean_speed()
-                - self.CF_CAL_RUN_S) * self.weight / self.M_IN_KM \
-            * self.duration * self.CF_MIN
+                - self.CF_CAL_RUN_S) * (self.weight
+                                        / self.M_IN_KM) * (self.duration
+                                                           * self.CF_MIN)
 
 
 class SportsWalking(Training):
     """Тренировка: спортивная ходьба."""
+
+    CF_CAL_SW_F: int = 0.035
+    CF_CAL_SW_S: int = 0.029
 
     def __init__(self,
                  action: int,
@@ -110,7 +111,9 @@ class SportsWalking(Training):
 class Swimming(Training):
     """Тренировка: плавание."""
 
-    LEN_STEP: ClassVar[float] = 1.38
+    LEN_STEP: float = 1.38
+    CF_CAL_SWM_F: int = 1.1
+    CF_CAL_SWM_S: int = 2
 
     def __init__(self,
                  action: int,
@@ -141,12 +144,18 @@ class Swimming(Training):
 def read_package(workout_type: str, data: list) -> Training:
     """Прочитать данные полученные от датчиков."""
 
-    dict_wrk_tp = {
+    dict_workout_type = {
         'SWM': Swimming,
         'RUN': Running,
         'WLK': SportsWalking
     }
-    return dict_wrk_tp[workout_type](*data)
+    if workout_type not in dict_workout_type.keys():
+        raise KeyError(f'Ошибка: тип тренировки "{workout_type}" не обнаружен')
+    if len(data) != (len(signature(dict_workout_type[workout_type])
+                     .parameters)):
+        raise ValueError(f'Ошибка: несоответствие кол-ва параметров '
+                         f'тренировки "{workout_type}"')
+    return dict_workout_type[workout_type](*data)
 
 
 def main(training: Training) -> None:
